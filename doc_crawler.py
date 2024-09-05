@@ -2,20 +2,26 @@ import requests
 from bs4 import BeautifulSoup
 import os
 from urllib.parse import urljoin, urlparse
+import time
 
 class DocumentCrawler:
-    def __init__(self, base_url):
+    def __init__(self, base_url, max_depth=3):
         self.base_url = base_url
         self.visited_urls = set()
+        self.max_depth = max_depth
 
-    def crawl(self, url):
+    def crawl(self, url, depth=0):
+        if depth > self.max_depth:
+            return
+
         if url in self.visited_urls:
             return
 
         self.visited_urls.add(url)
+        print(f"Crawling: {url}")
 
         try:
-            response = requests.get(url)
+            response = requests.get(url, timeout=10)
             soup = BeautifulSoup(response.text, 'html.parser')
 
             # Extract content
@@ -27,7 +33,9 @@ class DocumentCrawler:
             for link in soup.find_all('a', href=True):
                 next_url = urljoin(url, link['href'])
                 if self.is_valid_url(next_url):
-                    self.crawl(next_url)
+                    self.crawl(next_url, depth + 1)
+
+            time.sleep(1)  # Be polite, wait 1 second between requests
 
         except Exception as e:
             print(f"Error crawling {url}: {str(e)}")
