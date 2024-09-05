@@ -11,12 +11,25 @@ class DocumentCrawler:
         self.visited_urls = set()
         self.max_depth = max_depth
         self.saved_files = set()
+        self.load_existing_files()
+
+    def load_existing_files(self):
+        if os.path.exists('crawled_docs'):
+            for root, dirs, files in os.walk('crawled_docs'):
+                for file in files:
+                    if file.endswith('.html'):
+                        path_parts = os.path.relpath(os.path.join(root, file), 'crawled_docs').split(os.sep)
+                        url_path = '/' + '/'.join(path_parts)
+                        url_path = url_path.rsplit('.', 1)[0]  # Remove the file extension
+                        self.visited_urls.add(urljoin(self.base_url, url_path))
+            print(f"Loaded {len(self.visited_urls)} existing URLs")
 
     def crawl(self, url, depth=0):
         if depth > self.max_depth:
             return
 
         if url in self.visited_urls:
+            print(f"Skipping already visited URL: {url}")
             return
 
         self.visited_urls.add(url)
@@ -49,27 +62,18 @@ class DocumentCrawler:
         return parsed_url.netloc == urlparse(self.base_url).netloc and parsed_url.path.startswith('/docs/')
 
     def save_content(self, url, content):
-        # Create a file name from the URL
+        # Create a file name and path from the URL
         path = urlparse(url).path
-        file_name = re.sub(r'[^\w\-_\. ]', '_', path.strip('/'))
-        if file_name == '':
-            file_name = 'index'
-        file_name = file_name + '.html'
+        file_path = os.path.join('crawled_docs', path.strip('/'))
         
         # Ensure the directory exists
-        os.makedirs('crawled_docs', exist_ok=True)
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
         
-        # Check for duplicates and append a number if necessary
-        base_name, ext = os.path.splitext(file_name)
-        counter = 1
-        while file_name in self.saved_files:
-            file_name = f"{base_name}_{counter}{ext}"
-            counter += 1
-
-        self.saved_files.add(file_name)
+        # Add .html extension if not present
+        if not file_path.endswith('.html'):
+            file_path += '.html'
         
         # Save the content
-        file_path = os.path.join('crawled_docs', file_name)
         try:
             with open(file_path, 'w', encoding='utf-8') as f:
                 f.write(f"<html><head><title>{url}</title></head><body>")
@@ -77,6 +81,7 @@ class DocumentCrawler:
                 f.write(str(content))
                 f.write("</body></html>")
             print(f"Saved: {file_path}")
+            self.saved_files.add(file_path)
         except Exception as e:
             print(f"Error saving {file_path}: {str(e)}")
 
@@ -85,4 +90,4 @@ if __name__ == "__main__":
     crawler = DocumentCrawler(base_url)
     crawler.crawl(base_url)
     print("크롤링이 완료되었습니다. 결과는 'crawled_docs' 폴더에 저장되었습니다.")
-    print(f"총 {len(crawler.saved_files)}개의 파일이 저장되었습니다.")
+    print(f"총 {len(crawler.saved_files)}개의 새 파일이 저장되었습니다.")
