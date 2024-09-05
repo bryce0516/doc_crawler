@@ -3,12 +3,14 @@ from bs4 import BeautifulSoup
 import os
 from urllib.parse import urljoin, urlparse
 import time
+import re
 
 class DocumentCrawler:
     def __init__(self, base_url, max_depth=3):
         self.base_url = base_url
         self.visited_urls = set()
         self.max_depth = max_depth
+        self.saved_files = set()
 
     def crawl(self, url, depth=0):
         if depth > self.max_depth:
@@ -24,10 +26,12 @@ class DocumentCrawler:
             response = requests.get(url, timeout=10)
             soup = BeautifulSoup(response.text, 'html.parser')
 
-            # Extract content
-            content = soup.find('div', class_='content')
-            if content:
-                self.save_content(url, content.get_text())
+            # Extract and save the main content
+            main_content = soup.find('main')
+            if main_content:
+                self.save_content(url, main_content)
+            else:
+                print(f"No main content found for {url}")
 
             # Find and crawl links
             for link in soup.find_all('a', href=True):
@@ -47,17 +51,38 @@ class DocumentCrawler:
     def save_content(self, url, content):
         # Create a file name from the URL
         path = urlparse(url).path
-        file_name = path.strip('/').replace('/', '_') + '.txt'
+        file_name = re.sub(r'[^\w\-_\. ]', '_', path.strip('/'))
+        if file_name == '':
+            file_name = 'index'
+        file_name = file_name + '.html'
         
         # Ensure the directory exists
         os.makedirs('crawled_docs', exist_ok=True)
         
+        # Check for duplicates and append a number if necessary
+        base_name, ext = os.path.splitext(file_name)
+        counter = 1
+        while file_name in self.saved_files:
+            file_name = f"{base_name}_{counter}{ext}"
+            counter += 1
+
+        self.saved_files.add(file_name)
+        
         # Save the content
-        with open(os.path.join('crawled_docs', file_name), 'w', encoding='utf-8') as f:
-            f.write(content)
+        file_path = os.path.join('crawled_docs', file_name)
+        try:
+            with open(file_path, 'w', encoding='utf-8') as f:
+                f.write(f"<html><head><title>{url}</title></head><body>")
+                f.write(f"<h1>Source: <a href='{url}'>{url}</a></h1>")
+                f.write(str(content))
+                f.write("</body></html>")
+            print(f"Saved: {file_path}")
+        except Exception as e:
+            print(f"Error saving {file_path}: {str(e)}")
 
 if __name__ == "__main__":
     base_url = input("크롤링할 웹사이트 주소를 입력하세요: ")
     crawler = DocumentCrawler(base_url)
     crawler.crawl(base_url)
     print("크롤링이 완료되었습니다. 결과는 'crawled_docs' 폴더에 저장되었습니다.")
+    print(f"총 {len(crawler.saved_files)}개의 파일이 저장되었습니다.")

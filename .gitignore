@@ -31,3 +31,5 @@ build/
 
 # Log files
 *.log
+
+crawled_docs/
