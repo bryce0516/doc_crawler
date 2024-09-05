@@ -95,13 +95,3 @@ If you encounter any issues:
    인터넷 연결을 확인하세요.
 4. If you get a "ModuleNotFoundError", ensure you've installed all required libraries.  
    "ModuleNotFoundError"가 발생하면 필수 라이브러리가 모두 설치되었는지 확인하세요.
-
-## License (라이선스)
-
-This project is under the MIT License.  
-이 프로젝트는 MIT 라이선스 하에 있습니다.
-
-## Contributing (기여)
-
-Contributions, issues, and feature requests are welcome. Feel free to check [issues page](https://github.com/yourusername/doc-crawler/issues) if you want to contribute.  
-기여, 이슈 및 기능 요청은 언제나 환영합니다. 기여하고 싶다면 [이슈 페이지](https://github.com/yourusername/doc-crawler/issues)를 확인하세요.
